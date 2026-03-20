@@ -207,8 +207,10 @@
 
         .ship-item.destroyed .primary-name,
         .ship-item.destroyed .secondary-name,
-        .ship-item.destroyed .admiral-name {
+        .ship-item.destroyed .admiral-name,
+        .ship-item.destroyed .faction-icon svg {
             text-decoration: line-through;
+            opacity: 0.5;
         }
 
         .ship-info {
@@ -257,6 +259,18 @@
             flex-direction: column;
             line-height: 1.2;
             min-width: 200px;
+        }
+
+        .primary-name-container {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .faction-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .primary-name {
@@ -405,12 +419,22 @@
             color: #000;
             text-transform: uppercase;
         }
+        
+        /* Round Counter Sidebar Widget */
+        .round-counter-widget {
+            background-color: #222;
+            padding: 10px;
+            border-radius: 10px 0 0 10px;
+            margin-bottom: 15px;
+            text-align: right;
+            border-right: 4px solid var(--lcars-lavender);
+        }
     </style>
 </head>
 <body onload="initApp()">
 
     <div class="lcars-sidebar">
-        <div class="lcars-elbow-top">74205.1</div>
+        <div class="lcars-elbow-top" id="stardate-display">00000.0</div>
         
         <div id="sidebar-player-setup">
             <button class="lcars-menu-btn green" onclick="switchScreen('ship')">Next Phase<br>(Add Ships)</button>
@@ -427,6 +451,16 @@
         </div>
 
         <div id="sidebar-play" class="hidden">
+            
+            <div class="round-counter-widget">
+                <div style="color: var(--lcars-blue); font-size: 0.9rem;">ROUND</div>
+                <div id="round-display" style="font-size: 2.2rem; font-weight: bold; color: var(--lcars-pale-yellow); margin: 5px 0;">1</div>
+                <div>
+                    <button class="mod-btn" style="padding: 5px 12px; font-size: 1rem;" onclick="changeRound(-1)">-</button>
+                    <button class="mod-btn" style="padding: 5px 12px; font-size: 1rem;" onclick="changeRound(1)">+</button>
+                </div>
+            </div>
+
             <button class="lcars-menu-btn" onclick="setPhase('move')">Move Phase<br>(Low to High)</button>
             <button class="lcars-menu-btn lavender" onclick="setPhase('combat')">Combat Phase<br>(High to Low)</button>
             <div style="height: 15px;"></div>
@@ -474,6 +508,15 @@
                 <div class="input-group">
                     <select id="shipPlayerSelect">
                         <option value="" disabled selected>Select Player</option>
+                    </select>
+                    
+                    <select id="shipFaction" class="skill-select" style="width: 130px;">
+                        <option value="federation" selected>Federation</option>
+                        <option value="klingon">Klingon</option>
+                        <option value="romulan">Romulan</option>
+                        <option value="borg">Borg</option>
+                        <option value="dominion">Dominion</option>
+                        <option value="independent">Independent</option>
                     </select>
                 </div>
                 
@@ -571,6 +614,7 @@
         let ships = [];
         let players = []; 
         let initiativeIndex = 0; 
+        let currentRound = 1;
         let swapShipId = null; 
         
         let currentPhase = 'move'; 
@@ -579,9 +623,22 @@
 
         // --- CORE INITIALIZATION & AUTOSAVE ---
         function initApp() {
+            calculateStardate();
             updateColorSelect();
             loadState();
             requestWakeLock();
+        }
+        
+        function calculateStardate() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const startOfYear = new Date(year, 0, 0);
+            const diff = now - startOfYear;
+            const oneDay = 1000 * 60 * 60 * 24;
+            const dayOfYear = Math.floor(diff / oneDay);
+            
+            const stardate = 41000 + ((year - 1987) * 1000) + ((dayOfYear / 365.25) * 1000);
+            document.getElementById('stardate-display').innerText = stardate.toFixed(1);
         }
 
         function saveState() {
@@ -589,6 +646,7 @@
                 ships: ships,
                 players: players,
                 initiativeIndex: initiativeIndex,
+                currentRound: currentRound,
                 currentPhase: currentPhase,
                 currentScreen: currentScreen
             };
@@ -603,13 +661,14 @@
                     ships = parsed.ships || [];
                     players = parsed.players || [];
                     initiativeIndex = parsed.initiativeIndex || 0;
+                    currentRound = parsed.currentRound || 1;
                     currentPhase = parsed.currentPhase || 'move';
                     currentScreen = parsed.currentScreen || 'player';
                 } catch (e) {
                     console.error("Data core corruption. Local memory cleared.", e);
                 }
             }
-            // Restore visual state
+            document.getElementById('round-display').innerText = currentRound;
             renderPlayerList();
             renderShipLists();
             switchScreen(currentScreen, true); 
@@ -624,7 +683,6 @@
                     wakeLock.addEventListener('release', () => {
                         console.log('Screen Wake Lock released');
                     });
-                    console.log('Screen Wake Lock active');
                 }
             } catch (err) {
                 console.error(`Wake Lock Error: ${err.name}, ${err.message}`);
@@ -637,10 +695,29 @@
             }
         });
 
+        // --- ROUND TRACKER ---
+        function changeRound(amount) {
+            currentRound += amount;
+            if (currentRound < 1) currentRound = 1;
+            document.getElementById('round-display').innerText = currentRound;
+            saveState();
+        }
+
         function updateColorSelect() {
             const select = document.getElementById('playerColor');
             select.style.backgroundColor = select.value;
             select.style.color = '#000'; 
+        }
+
+        // --- SVG Faction Icon Generator ---
+        function getFactionIcon(faction, color) {
+            const size = 20;
+            if (faction === 'federation') return `<svg width="${size}" height="${size}" viewBox="0 0 24 24"><path fill="${color}" d="M12 2L4 20L12 15L20 20L12 2Z"/></svg>`;
+            if (faction === 'klingon') return `<svg width="${size}" height="${size}" viewBox="0 0 24 24"><path fill="${color}" d="M12 2L2 10L10 12L7 22L12 16L17 22L14 12L22 10Z"/></svg>`; 
+            if (faction === 'romulan') return `<svg width="${size}" height="${size}" viewBox="0 0 24 24"><path fill="${color}" d="M12 4C8 4 2 10 2 10L6 14L12 8L18 14L22 10C22 10 16 4 12 4Z"/></svg>`;
+            if (faction === 'borg') return `<svg width="${size}" height="${size}" viewBox="0 0 24 24"><path fill="${color}" d="M4 4H20V20H4V4ZM8 8V16H16V8H8Z"/></svg>`;
+            if (faction === 'dominion') return `<svg width="${size}" height="${size}" viewBox="0 0 24 24"><path fill="${color}" d="M12 2L3 22H10L12 17L14 22H21L12 2Z"/></svg>`;
+            return `<svg width="${size}" height="${size}" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="${color}"/></svg>`; // Independent
         }
 
         function addPlayer() {
@@ -686,6 +763,7 @@
 
         function addShip() {
             const playerSelect = document.getElementById('shipPlayerSelect').value;
+            const factionSelect = document.getElementById('shipFaction').value;
             const shipInput = document.getElementById('shipName').value.trim() || "Unknown Ship";
             const captainInput = document.getElementById('captainName').value.trim() || "Unknown Captain";
             const captainSkillStr = document.getElementById('captainSkill').value;
@@ -704,6 +782,7 @@
                 id: Date.now(), 
                 playerName: playerObj.name,
                 color: playerObj.color,
+                faction: factionSelect,
                 shipName: shipInput, 
                 captainName: captainInput,
                 baseSkill: baseSkill,
@@ -789,6 +868,8 @@
                 ships = [];
                 players = [];
                 initiativeIndex = 0;
+                currentRound = 1;
+                document.getElementById('round-display').innerText = currentRound;
                 renderPlayerList();
                 renderShipLists();
                 switchScreen('player');
@@ -975,7 +1056,13 @@
             if(playList) playList.innerHTML = '';
 
             const getNamesHTML = (ship) => {
-                let html = `<span class="primary-name">${ship.shipName}</span>`;
+                const iconSVG = getFactionIcon(ship.faction || 'independent', ship.color);
+                
+                let html = `
+                <div class="primary-name-container">
+                    <div class="faction-icon">${iconSVG}</div>
+                    <span class="primary-name">${ship.shipName}</span>
+                </div>`;
                 
                 if (ship.captainDisabled) {
                     html += `<span class="secondary-name" style="text-decoration: line-through; opacity: 0.5;">${ship.captainName} (Base: ${ship.baseSkill})</span>`;
