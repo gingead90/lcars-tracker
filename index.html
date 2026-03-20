@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#000000">
+    <title>LCARS Attack Wing Tracker</title>
+    <style>
+        /* LCARS Color Palette & Fonts */
+        :root {
+            --bg-color: #000000;
+            --lcars-orange: #FF9900;
+            --lcars-blue: #99CCFF;
+            --lcars-lavender: #CC99CC;
+            --lcars-pale-yellow: #FFFF99;
+            --lcars-red: #CC6666;
+            --lcars-green: #99CC99;
+            --lcars-tan: #FFCC99;
+            --text-color: #FF9900;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Arial Narrow', Arial, sans-serif;
+            text-transform: uppercase;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden; 
+        }
+
+        /* LCARS Layout */
+        .lcars-sidebar {
+            width: 140px;
+            display: flex;
+            flex-direction: column;
+            padding-right: 10px;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .lcars-elbow-top {
+            background-color: var(--lcars-orange);
+            height: 60px;
+            border-bottom-left-radius: 40px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: flex-end;
+            padding: 10px;
+            color: #000;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .lcars-menu-btn {
+            background-color: var(--lcars-blue);
+            color: #000;
+            border: none;
+            padding: 12px 8px;
+            margin-bottom: 5px;
+            text-align: right;
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: bold;
+            border-radius: 20px 0 0 20px;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+
+        .lcars-menu-btn.lavender { background-color: var(--lcars-lavender); }
+        .lcars-menu-btn.red { background-color: var(--lcars-red); }
+        .lcars-menu-btn.green { background-color: var(--lcars-green); }
+        .lcars-menu-btn.orange { background-color: var(--lcars-orange); }
+        .lcars-menu-btn.yellow { background-color: var(--lcars-pale-yellow); }
+        .lcars-menu-btn.tan { background-color: var(--lcars-tan); text-align: center; border-radius: 10px; padding: 10px; margin-bottom: 0;}
+        
+        .lcars-menu-btn:active, .add-btn:active, .mod-btn:active, .delete-btn:active, .action-btn:active {
+            opacity: 0.7;
+        }
+
+        .lcars-main {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .lcars-header {
+            background-color: var(--lcars-orange);
+            min-height: 35px;
+            border-bottom-right-radius: 20px;
+            border-top-left-radius: 20px;
+            margin-bottom: 10px;
+            margin-right: 15px;
+            display: flex;
+            align-items: center;
+            padding-left: 15px;
+            color: #000;
+            font-weight: bold;
+            font-size: 1.2rem;
+            letter-spacing: 2px;
+            transition: background-color 0.3s;
+        }
+
+        /* Content Area */
+        .content {
+            padding: 0 15px 15px 10px;
+            overflow-y: auto; 
+            flex-grow: 1;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Input Form */
+        .setup-panel {
+            background-color: #111;
+            padding: 10px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            border-left: 4px solid var(--lcars-lavender);
+        }
+
+        .input-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 5px;
+        }
+
+        input, select {
+            background-color: #222;
+            border: 2px solid var(--lcars-lavender);
+            color: var(--lcars-blue);
+            padding: 6px 8px;
+            font-family: inherit;
+            font-size: 1rem;
+            border-radius: 8px;
+            text-transform: uppercase;
+        }
+
+        input::placeholder { color: #666; font-size: 0.9rem; }
+        
+        #playerName, #shipPlayerSelect { width: 160px; border-color: var(--lcars-tan); }
+        
+        #playerColor { 
+            border-color: var(--lcars-tan); 
+            cursor: pointer; 
+            font-weight: bold;
+            width: 100px;
+            text-align: center;
+        }
+
+        .skill-select { width: 110px; font-size: 0.9rem; }
+
+        button.add-btn {
+            background-color: var(--lcars-pale-yellow);
+            color: #000;
+            border: none;
+            padding: 8px 15px;
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 15px;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+
+        /* Tracker List */
+        .ship-list {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .ship-item {
+            background-color: #111;
+            border-left: 10px solid var(--player-color, var(--lcars-blue));
+            margin-bottom: 8px;
+            padding: 8px 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 0 8px 8px 0;
+            transition: all 0.3s ease;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .ship-item.destroyed {
+            opacity: 0.4;
+            filter: grayscale(100%);
+        }
+
+        .ship-item.destroyed .primary-name,
+        .ship-item.destroyed .secondary-name,
+        .ship-item.destroyed .admiral-name {
+            text-decoration: line-through;
+        }
+
+        .ship-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-grow: 1;
+            flex-wrap: wrap;
+        }
+
+        .skill-badge {
+            background-color: var(--player-color, var(--lcars-blue));
+            color: #000;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-weight: bold;
+            min-width: 50px;
+            text-align: center;
+            font-size: 1.1rem;
+        }
+
+        .player-badge {
+            font-size: 0.9rem;
+            padding: 2px 8px;
+            border-radius: 6px;
+            background-color: #222;
+            color: var(--player-color, #fff);
+            border: 1px solid var(--player-color, #555);
+            min-width: 70px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .initiative-tag {
+            color: var(--lcars-pale-yellow);
+            font-size: 0.7rem;
+            font-weight: bold;
+            margin-top: 2px;
+            letter-spacing: 1px;
+        }
+
+        .names-container {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.2;
+            min-width: 200px;
+        }
+
+        .primary-name {
+            color: var(--player-color, var(--lcars-blue));
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .secondary-name {
+            color: #999;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+            transition: all 0.3s;
+        }
+        
+        .admiral-name {
+            color: var(--lcars-tan);
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+        }
+        
+        .acting-captain {
+            color: var(--lcars-orange);
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .controls-container {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .mod-btn {
+            background-color: #444;
+            color: var(--lcars-tan);
+            border: 1px solid #666;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+
+        .action-btn {
+            background-color: #333;
+            color: var(--lcars-blue);
+            border: 1px solid #555;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+
+        .action-btn.active-red {
+            background-color: var(--lcars-red);
+            color: #000;
+            border-color: #a00;
+        }
+
+        .delete-btn {
+            background-color: var(--lcars-red);
+            color: #000;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-family: inherit;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        .status-text {
+            color: var(--lcars-pale-yellow);
+            margin-bottom: 8px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background-color: rgba(0, 0, 0, 0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background-color: #111;
+            border: 3px solid var(--lcars-orange);
+            border-radius: 20px;
+            padding: 20px;
+            width: 380px;
+            max-width: 90%;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-player-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            background-color: #222;
+            padding: 5px;
+            border-radius: 10px;
+        }
+
+        .modal-rank {
+            color: var(--lcars-pale-yellow);
+            font-size: 1.2rem;
+            font-weight: bold;
+            width: 25px;
+            text-align: right;
+            padding-right: 5px;
+        }
+
+        .modal-arrow-btn {
+            background-color: #444;
+            color: var(--lcars-blue);
+            border: 1px solid #555;
+            padding: 10px 12px;
+            border-radius: 6px;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        .modal-name-display {
+            flex-grow: 1;
+            padding: 10px;
+            font-family: inherit;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border-radius: 6px;
+            text-align: center;
+            color: #000;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body onload="initApp()">
+
+    <div class="lcars-sidebar">
+        <div class="lcars-elbow-top">74205.1</div>
+        
+        <div id="sidebar-player-setup">
+            <button class="lcars-menu-btn green" onclick="switchScreen('ship')">Next Phase<br>(Add Ships)</button>
+            <div style="height: 30px;"></div>
+            <button class="lcars-menu-btn red" onclick="clearAll()">Clear All</button>
+        </div>
+
+        <div id="sidebar-ship-setup" class="hidden">
+            <button class="lcars-menu-btn green" onclick="triggerEngage()">Engage<br>(Start Play)</button>
+            <div style="height: 15px;"></div>
+            <button class="lcars-menu-btn orange" onclick="switchScreen('player')">Back to<br>Players</button>
+            <div style="height: 30px;"></div>
+            <button class="lcars-menu-btn red" onclick="clearAll()">Clear All</button>
+        </div>
+
+        <div id="sidebar-play" class="hidden">
+            <button class="lcars-menu-btn" onclick="setPhase('move')">Move Phase<br>(Low to High)</button>
+            <button class="lcars-menu-btn lavender" onclick="setPhase('combat')">Combat Phase<br>(High to Low)</button>
+            <div style="height: 15px;"></div>
+            <button class="lcars-menu-btn yellow" onclick="passInitiative()">End Phase<br>(Pass Init.)</button>
+            <div style="height: 30px;"></div>
+            <button class="lcars-menu-btn orange" onclick="switchScreen('ship')">Back to<br>Fleet</button>
+        </div>
+    </div>
+
+    <div class="lcars-main">
+        <div class="lcars-header" id="main-header">1. PLAYER ROSTER</div>
+        
+        <div id="screen-player-setup" class="content">
+            <div class="setup-panel">
+                <div class="status-text">ADD COMMANDERS TO COMBAT</div>
+                <div class="input-group">
+                    <input type="text" id="playerName" placeholder="Player Name" list="presetPlayers">
+                    <datalist id="presetPlayers">
+                        <option value="Chris"></option>
+                        <option value="Adam"></option>
+                    </datalist>
+                    
+                    <select id="playerColor" onchange="updateColorSelect()">
+                        <option value="#CC6666">RED</option>
+                        <option value="#99CCFF" selected>BLUE</option>
+                        <option value="#FFFF99">YELLOW</option>
+                        <option value="#99CC99">GREEN</option>
+                        <option value="#FF9900">ORANGE</option>
+                        <option value="#CC99CC">PURPLE</option>
+                    </select>
+
+                    <button class="add-btn" onclick="addPlayer()">Add Player</button>
+                </div>
+            </div>
+            <div class="status-text" style="color: var(--lcars-blue)">ACTIVE PLAYERS:</div>
+            <ul class="ship-list" id="playerList"></ul>
+        </div>
+
+        <div id="screen-ship-setup" class="content hidden">
+            <div class="setup-panel">
+                <div class="status-text">FLEET DEPLOYMENT</div>
+                
+                <div class="input-group">
+                    <select id="shipPlayerSelect">
+                        <option value="" disabled selected>Select Player</option>
+                    </select>
+                </div>
+                
+                <div class="input-group">
+                    <input type="text" id="shipName" placeholder="Ship Name" style="flex-grow: 1;">
+                    <input type="text" id="captainName" placeholder="Captain Name" style="flex-grow: 1;">
+                    <select id="captainSkill" class="skill-select">
+                        <option value="" disabled selected>Base Capt Skill</option>
+                        <option value="0">0</option><option value="1">1</option><option value="2">2</option>
+                        <option value="3">3</option><option value="4">4</option><option value="5">5</option>
+                        <option value="6">6</option><option value="7">7</option><option value="8">8</option>
+                        <option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option>
+                    </select>
+                </div>
+                
+                <div class="input-group" style="margin-top: 5px; border-top: 1px dashed #444; padding-top: 8px;">
+                    <input type="text" id="admiralName" placeholder="Admiral Name (Optional)" style="flex-grow: 1;">
+                    <select id="admiralMod" class="skill-select">
+                        <option value="0" selected>Adm Mod: +0</option>
+                        <option value="1">+1</option><option value="2">+2</option><option value="3">+3</option>
+                    </select>
+                    <select id="admiralBaseSkill" class="skill-select">
+                        <option value="" disabled selected>Adm. Base Skill</option>
+                        <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                        <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+                        <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+                        <option value="10">10</option><option value="11">11</option><option value="12">12</option>
+                    </select>
+                    <button class="add-btn" onclick="addShip()">Deploy Ship</button>
+                </div>
+            </div>
+            
+            <div class="status-text" style="color: var(--lcars-blue)">CURRENT FLEET ROSTER:</div>
+            <ul class="ship-list" id="setupList"></ul>
+        </div>
+
+        <div id="screen-play" class="content hidden">
+            <div class="status-text" id="current-phase">CURRENT PHASE: MOVEMENT (LOW TO HIGH)</div>
+            <ul class="ship-list" id="playList"></ul>
+        </div>
+
+    </div>
+
+    <div id="initiative-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="status-text" style="text-align: center; margin-bottom: 0;">SET INITIATIVE ORDER</div>
+            <div class="status-text" style="text-align: center; margin-bottom: 10px; font-size: 0.9rem; color: #999;">Player #1 has the Initiative.</div>
+            
+            <div id="modal-player-list" style="display: flex; flex-direction: column; gap: 8px;">
+                </div>
+            
+            <button class="lcars-menu-btn green" style="border-radius: 10px; text-align: center; margin-top: 15px; font-size: 1.2rem; padding: 15px;" onclick="startGameWithInitiative()">ENGAGE (LOCK ORDER)</button>
+            <button class="lcars-menu-btn red" style="border-radius: 10px; text-align: center; margin-top: 5px;" onclick="closeModal('initiative-modal')">Cancel</button>
+        </div>
+    </div>
+
+    <div id="swap-captain-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="status-text" style="text-align: center; margin-bottom: 10px;">REASSIGN COMMANDER</div>
+            
+            <div class="input-group" style="flex-direction: column; align-items: stretch;">
+                <input type="text" id="swapCaptName" placeholder="New Captain Name">
+                <select id="swapCaptSkill" class="skill-select" style="width: 100%;">
+                    <option value="" disabled selected>Base Capt Skill</option>
+                    <option value="0">0</option><option value="1">1</option><option value="2">2</option>
+                    <option value="3">3</option><option value="4">4</option><option value="5">5</option>
+                    <option value="6">6</option><option value="7">7</option><option value="8">8</option>
+                    <option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option>
+                </select>
+                
+                <div style="border-top: 1px dashed #444; margin: 10px 0;"></div>
+                
+                <input type="text" id="swapAdmName" placeholder="New Admiral Name (Optional)">
+                <div style="display: flex; gap: 10px;">
+                    <select id="swapAdmMod" class="skill-select" style="flex-grow: 1;">
+                        <option value="0" selected>Adm Mod: +0</option>
+                        <option value="1">+1</option><option value="2">+2</option><option value="3">+3</option>
+                    </select>
+                    <select id="swapAdmBaseSkill" class="skill-select" style="flex-grow: 1;">
+                        <option value="" disabled selected>Adm. Base Skill</option>
+                        <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                        <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+                        <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+                        <option value="10">10</option><option value="11">11</option><option value="12">12</option>
+                    </select>
+                </div>
+            </div>
+            
+            <button class="lcars-menu-btn green" style="border-radius: 10px; text-align: center; margin-top: 15px; font-size: 1.2rem; padding: 15px;" onclick="saveCaptainSwap()">AUTHORIZE TRANSFER</button>
+            <button class="lcars-menu-btn red" style="border-radius: 10px; text-align: center; margin-top: 5px;" onclick="closeModal('swap-captain-modal')">Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        let ships = [];
+        let players = []; 
+        let initiativeIndex = 0; 
+        let swapShipId = null; 
+        
+        let currentPhase = 'move'; 
+        let currentScreen = 'player';
+        let wakeLock = null;
+
+        // --- CORE INITIALIZATION & AUTOSAVE ---
+        function initApp() {
+            updateColorSelect();
+            loadState();
+            requestWakeLock();
+        }
+
+        function saveState() {
+            const appState = {
+                ships: ships,
+                players: players,
+                initiativeIndex: initiativeIndex,
+                currentPhase: currentPhase,
+                currentScreen: currentScreen
+            };
+            localStorage.setItem('lcarsTrackerData', JSON.stringify(appState));
+        }
+
+        function loadState() {
+            const savedData = localStorage.getItem('lcarsTrackerData');
+            if (savedData) {
+                try {
+                    const parsed = JSON.parse(savedData);
+                    ships = parsed.ships || [];
+                    players = parsed.players || [];
+                    initiativeIndex = parsed.initiativeIndex || 0;
+                    currentPhase = parsed.currentPhase || 'move';
+                    currentScreen = parsed.currentScreen || 'player';
+                } catch (e) {
+                    console.error("Data core corruption. Local memory cleared.", e);
+                }
+            }
+            // Restore visual state
+            renderPlayerList();
+            renderShipLists();
+            switchScreen(currentScreen, true); 
+            setPhase(currentPhase, true);
+        }
+
+        // --- WAKE LOCK PROTOCOL ---
+        async function requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    wakeLock.addEventListener('release', () => {
+                        console.log('Screen Wake Lock released');
+                    });
+                    console.log('Screen Wake Lock active');
+                }
+            } catch (err) {
+                console.error(`Wake Lock Error: ${err.name}, ${err.message}`);
+            }
+        }
+        
+        document.addEventListener('visibilitychange', async () => {
+            if (wakeLock !== null && document.visibilityState === 'visible') {
+                await requestWakeLock();
+            }
+        });
+
+        function updateColorSelect() {
+            const select = document.getElementById('playerColor');
+            select.style.backgroundColor = select.value;
+            select.style.color = '#000'; 
+        }
+
+        function addPlayer() {
+            const nameInput = document.getElementById('playerName').value.trim();
+            const colorInput = document.getElementById('playerColor').value;
+            
+            if (!nameInput) { alert("Please enter a Player Name."); return; }
+            if (players.find(p => p.name.toLowerCase() === nameInput.toLowerCase())) { alert("Player already added."); return; }
+
+            players.push({ name: nameInput, color: colorInput });
+            document.getElementById('playerName').value = "";
+            document.getElementById('playerName').focus();
+            renderPlayerList();
+            saveState();
+        }
+
+        function deletePlayer(index) {
+            const removedPlayer = players[index];
+            players.splice(index, 1);
+            ships = ships.filter(ship => ship.playerName !== removedPlayer.name);
+            renderPlayerList();
+            saveState();
+        }
+
+        function renderPlayerList() {
+            const list = document.getElementById('playerList');
+            list.innerHTML = '';
+            
+            players.forEach((player, index) => {
+                const li = document.createElement('li');
+                li.className = 'ship-item';
+                li.style.setProperty('--player-color', player.color);
+                
+                li.innerHTML = `
+                    <div class="ship-info">
+                        <span class="player-badge" style="font-size: 1.1rem; min-width: 120px;">${player.name}</span>
+                    </div>
+                    <button class="delete-btn" onclick="deletePlayer(${index})">DEL</button>
+                `;
+                list.appendChild(li);
+            });
+        }
+
+        function addShip() {
+            const playerSelect = document.getElementById('shipPlayerSelect').value;
+            const shipInput = document.getElementById('shipName').value.trim() || "Unknown Ship";
+            const captainInput = document.getElementById('captainName').value.trim() || "Unknown Captain";
+            const captainSkillStr = document.getElementById('captainSkill').value;
+            
+            const admiralName = document.getElementById('admiralName').value.trim();
+            const admiralMod = parseInt(document.getElementById('admiralMod').value) || 0;
+            const admiralBaseSkill = parseInt(document.getElementById('admiralBaseSkill').value) || 1; 
+
+            if (!playerSelect) { alert("Please select a player to assign this ship to."); return; }
+            if (!captainSkillStr) { alert("Please select a base Captain Skill."); return; }
+
+            const baseSkill = parseInt(captainSkillStr);
+            const playerObj = players.find(p => p.name === playerSelect);
+
+            ships.push({ 
+                id: Date.now(), 
+                playerName: playerObj.name,
+                color: playerObj.color,
+                shipName: shipInput, 
+                captainName: captainInput,
+                baseSkill: baseSkill,
+                admiralName: admiralName,
+                admiralMod: admiralMod,
+                admiralBaseSkill: admiralBaseSkill,
+                manualMod: 0,           
+                captainDisabled: false, 
+                destroyed: false        
+            });
+            
+            document.getElementById('shipName').value = '';
+            document.getElementById('captainName').value = '';
+            document.getElementById('captainSkill').value = '';
+            document.getElementById('admiralName').value = '';
+            document.getElementById('admiralMod').value = '0';
+            document.getElementById('admiralBaseSkill').value = '';
+            document.getElementById('shipName').focus();
+            
+            renderShipLists();
+            saveState();
+        }
+
+        function getEffectiveSkill(ship) {
+            let base;
+            if (ship.captainDisabled) {
+                if (ship.admiralName) {
+                    base = ship.admiralBaseSkill;
+                } else {
+                    base = 1; 
+                }
+            } else {
+                base = ship.baseSkill + ship.admiralMod;
+            }
+            return Math.max(0, base + ship.manualMod);
+        }
+
+        function modifySkill(id, amount) {
+            const ship = ships.find(s => s.id === id);
+            if (ship) {
+                ship.manualMod += amount;
+                if (getEffectiveSkill(ship) < 0) ship.manualMod -= amount; 
+                renderShipLists();
+                saveState();
+            }
+        }
+
+        function resetSkill(id) {
+            const ship = ships.find(s => s.id === id);
+            if (ship) {
+                ship.manualMod = 0;
+                renderShipLists();
+                saveState();
+            }
+        }
+
+        function toggleCaptain(id) {
+            const ship = ships.find(s => s.id === id);
+            if (ship) {
+                ship.captainDisabled = !ship.captainDisabled;
+                renderShipLists();
+                saveState();
+            }
+        }
+
+        function toggleDestroyed(id) {
+            const ship = ships.find(s => s.id === id);
+            if (ship) {
+                ship.destroyed = !ship.destroyed;
+                renderShipLists();
+                saveState();
+            }
+        }
+
+        function deleteShip(id) {
+            ships = ships.filter(ship => ship.id !== id);
+            renderShipLists();
+            saveState();
+        }
+
+        function clearAll() {
+            if(confirm("Clear the entire fleet roster and wipe memory banks?")) {
+                ships = [];
+                players = [];
+                initiativeIndex = 0;
+                renderPlayerList();
+                renderShipLists();
+                switchScreen('player');
+                saveState();
+            }
+        }
+
+        // --- Modals Logic ---
+        function triggerEngage() {
+            if (ships.length === 0) { alert("Please deploy at least one ship before engaging."); return; }
+            document.getElementById('initiative-modal').classList.remove('hidden');
+            renderModalPlayerList();
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+            if(modalId === 'swap-captain-modal') swapShipId = null;
+        }
+
+        function movePlayerInModal(index, direction) {
+            if (direction === -1 && index > 0) {
+                let temp = players[index];
+                players[index] = players[index - 1];
+                players[index - 1] = temp;
+            } else if (direction === 1 && index < players.length - 1) {
+                let temp = players[index];
+                players[index] = players[index + 1];
+                players[index + 1] = temp;
+            }
+            renderModalPlayerList();
+        }
+
+        function renderModalPlayerList() {
+            const modalList = document.getElementById('modal-player-list');
+            modalList.innerHTML = '';
+            
+            players.forEach((player, index) => {
+                const row = document.createElement('div');
+                row.className = 'modal-player-row';
+                
+                row.innerHTML = `
+                    <div class="modal-rank">${index + 1}.</div>
+                    <button class="modal-arrow-btn" onclick="movePlayerInModal(${index}, -1)" ${index === 0 ? 'disabled style="opacity:0.3;"' : ''}>▲</button>
+                    <button class="modal-arrow-btn" onclick="movePlayerInModal(${index}, 1)" ${index === players.length - 1 ? 'disabled style="opacity:0.3;"' : ''}>▼</button>
+                    <div class="modal-name-display" style="background-color: ${player.color};">
+                        ${player.name}
+                    </div>
+                `;
+                modalList.appendChild(row);
+            });
+        }
+
+        function startGameWithInitiative() {
+            initiativeIndex = 0; 
+            closeModal('initiative-modal');
+            switchScreen('play');
+            saveState();
+        }
+
+        function passInitiative() {
+            if (players.length > 0) {
+                initiativeIndex = (initiativeIndex + 1) % players.length;
+                renderShipLists();
+                saveState();
+            }
+        }
+
+        function getInitiativeDistance(pName) {
+            if (players.length === 0) return 0;
+            const pIndex = players.findIndex(p => p.name === pName);
+            if (pIndex === -1) return 99; 
+            return (pIndex - initiativeIndex + players.length) % players.length;
+        }
+
+        function openSwapModal(id) {
+            const ship = ships.find(s => s.id === id);
+            if (!ship) return;
+            swapShipId = id;
+            
+            document.getElementById('swapCaptName').value = ship.captainName;
+            document.getElementById('swapCaptSkill').value = ship.baseSkill;
+            document.getElementById('swapAdmName').value = ship.admiralName;
+            document.getElementById('swapAdmMod').value = ship.admiralMod;
+            document.getElementById('swapAdmBaseSkill').value = ship.admiralBaseSkill || '';
+            
+            document.getElementById('swap-captain-modal').classList.remove('hidden');
+        }
+
+        function saveCaptainSwap() {
+            const ship = ships.find(s => s.id === swapShipId);
+            const captSkillStr = document.getElementById('swapCaptSkill').value;
+
+            if (!captSkillStr) { alert("Please select a base Captain Skill."); return; }
+
+            if (ship) {
+                ship.captainName = document.getElementById('swapCaptName').value.trim() || "Unknown Captain";
+                ship.baseSkill = parseInt(captSkillStr);
+                ship.admiralName = document.getElementById('swapAdmName').value.trim();
+                ship.admiralMod = parseInt(document.getElementById('swapAdmMod').value) || 0;
+                ship.admiralBaseSkill = parseInt(document.getElementById('swapAdmBaseSkill').value) || 1;
+                
+                ship.manualMod = 0; 
+                ship.captainDisabled = false; 
+            }
+            
+            closeModal('swap-captain-modal');
+            renderShipLists();
+            saveState();
+        }
+
+        function switchScreen(screen, isLoad = false) {
+            currentScreen = screen;
+            const screenPlayer = document.getElementById('screen-player-setup');
+            const screenShip = document.getElementById('screen-ship-setup');
+            const screenPlay = document.getElementById('screen-play');
+            const sidebarPlayer = document.getElementById('sidebar-player-setup');
+            const sidebarShip = document.getElementById('sidebar-ship-setup');
+            const sidebarPlay = document.getElementById('sidebar-play');
+            const header = document.getElementById('main-header');
+
+            screenPlayer.classList.add('hidden'); screenShip.classList.add('hidden'); screenPlay.classList.add('hidden');
+            sidebarPlayer.classList.add('hidden'); sidebarShip.classList.add('hidden'); sidebarPlay.classList.add('hidden');
+            
+            header.style.backgroundColor = 'var(--lcars-orange)'; 
+
+            if (screen === 'player') {
+                screenPlayer.classList.remove('hidden');
+                sidebarPlayer.classList.remove('hidden');
+                header.innerText = "1. PLAYER ROSTER";
+            } else if (screen === 'ship') {
+                if (players.length === 0 && !isLoad) { alert("Please add at least one player first."); switchScreen('player'); return; }
+                const select = document.getElementById('shipPlayerSelect');
+                select.innerHTML = '<option value="" disabled selected>Select Player</option>';
+                players.forEach(p => { select.innerHTML += `<option value="${p.name}">${p.name}</option>`; });
+                
+                screenShip.classList.remove('hidden');
+                sidebarShip.classList.remove('hidden');
+                header.innerText = "2. FLEET DEPLOYMENT";
+                renderShipLists();
+            } else if (screen === 'play') {
+                screenPlay.classList.remove('hidden');
+                sidebarPlay.classList.remove('hidden');
+                
+                if(currentPhase === 'move') {
+                    header.innerText = "3. HELM";
+                    header.style.backgroundColor = 'var(--lcars-blue)';
+                } else {
+                    header.innerText = "3. TACTICAL";
+                    header.style.backgroundColor = 'var(--lcars-lavender)';
+                }
+                renderShipLists();
+            }
+            if (!isLoad) saveState();
+        }
+
+        function setPhase(phase, isLoad = false) {
+            currentPhase = phase;
+            const statusText = document.getElementById('current-phase');
+            const header = document.getElementById('main-header');
+
+            if (phase === 'move') {
+                statusText.innerText = "CURRENT PHASE: MOVEMENT (LOW TO HIGH)";
+                if(currentScreen === 'play') {
+                    header.innerText = "3. HELM";
+                    header.style.backgroundColor = 'var(--lcars-blue)';
+                }
+            } else {
+                statusText.innerText = "CURRENT PHASE: COMBAT (HIGH TO LOW)";
+                if(currentScreen === 'play') {
+                    header.innerText = "3. TACTICAL";
+                    header.style.backgroundColor = 'var(--lcars-lavender)';
+                }
+            }
+            renderShipLists();
+            if (!isLoad) saveState();
+        }
+
+        // --- Rendering ---
+        function renderShipLists() {
+            const setupList = document.getElementById('setupList');
+            const playList = document.getElementById('playList');
+            
+            if(setupList) setupList.innerHTML = '';
+            if(playList) playList.innerHTML = '';
+
+            const getNamesHTML = (ship) => {
+                let html = `<span class="primary-name">${ship.shipName}</span>`;
+                
+                if (ship.captainDisabled) {
+                    html += `<span class="secondary-name" style="text-decoration: line-through; opacity: 0.5;">${ship.captainName} (Base: ${ship.baseSkill})</span>`;
+                    if (ship.admiralName) {
+                        html += `<span class="admiral-name acting-captain">ACTING CAPTAIN: ${ship.admiralName} (Base: ${ship.admiralBaseSkill})</span>`;
+                    } else {
+                        html += `<span class="admiral-name" style="color: var(--lcars-red);">NO CAPTAIN (Base: 1)</span>`;
+                    }
+                } else {
+                    html += `<span class="secondary-name">${ship.captainName} (Base: ${ship.baseSkill})</span>`;
+                    if (ship.admiralName) {
+                        html += `<span class="admiral-name">ADMIRAL: ${ship.admiralName} (Mod: +${ship.admiralMod} | Capt: ${ship.admiralBaseSkill})</span>`;
+                    }
+                }
+                return `<div class="names-container">${html}</div>`;
+            };
+
+            // Setup Screen List 
+            ships.forEach(ship => {
+                const li = document.createElement('li');
+                li.className = 'ship-item';
+                li.style.setProperty('--player-color', ship.color);
+                
+                let startSkill = ship.baseSkill + ship.admiralMod;
+                li.innerHTML = `
+                    <div class="ship-info">
+                        <span class="skill-badge">CS: ${startSkill}</span>
+                        <div class="player-badge">
+                            <span>${ship.playerName}</span>
+                        </div>
+                        ${getNamesHTML(ship)}
+                    </div>
+                    <button class="delete-btn" onclick="deleteShip(${ship.id})">DEL</button>
+                `;
+                if(setupList) setupList.appendChild(li);
+            });
+
+            // Play Screen List
+            let sortedShips = [...ships];
+            
+            sortedShips.sort((a, b) => {
+                if (a.destroyed && !b.destroyed) return 1;
+                if (!a.destroyed && b.destroyed) return -1;
+
+                let skillA = getEffectiveSkill(a);
+                let skillB = getEffectiveSkill(b);
+
+                if (skillA !== skillB) {
+                    return currentPhase === 'move' ? skillA - skillB : skillB - skillA;
+                } else {
+                    let distA = getInitiativeDistance(a.playerName);
+                    let distB = getInitiativeDistance(b.playerName);
+                    
+                    if (currentPhase === 'move') {
+                        return distB - distA; 
+                    } else {
+                        return distA - distB; 
+                    }
+                }
+            });
+
+            sortedShips.forEach(ship => {
+                const li = document.createElement('li');
+                li.className = `ship-item ${ship.destroyed ? 'destroyed' : ''}`;
+                li.style.setProperty('--player-color', ship.color);
+                
+                let hasInitiative = false;
+                if (players.length > 0 && players[initiativeIndex]) {
+                    hasInitiative = (players[initiativeIndex].name === ship.playerName);
+                }
+                const initTag = hasInitiative ? `<div class="initiative-tag">[INITIATIVE]</div>` : ``;
+
+                const currentSkill = getEffectiveSkill(ship);
+                const captBtnClass = ship.captainDisabled ? 'action-btn active-red' : 'action-btn';
+                const destBtnClass = ship.destroyed ? 'action-btn active-red' : 'action-btn';
+
+                li.innerHTML = `
+                    <div class="ship-info">
+                        <span class="skill-badge">CS: ${currentSkill}</span>
+                        <div class="player-badge">
+                            <span>${ship.playerName}</span>
+                            ${initTag}
+                        </div>
+                        ${getNamesHTML(ship)}
+                    </div>
+                    
+                    <div class="controls-container">
+                        <button class="mod-btn" onclick="modifySkill(${ship.id}, -1)" ${ship.destroyed ? 'disabled' : ''}>-</button>
+                        <button class="mod-btn" onclick="resetSkill(${ship.id})" ${ship.destroyed ? 'disabled' : ''} style="font-size: 0.9rem; padding: 6px 8px;">RST</button>
+                        <button class="mod-btn" onclick="modifySkill(${ship.id}, 1)" ${ship.destroyed ? 'disabled' : ''}>+</button>
+                        <button class="action-btn" onclick="openSwapModal(${ship.id})" ${ship.destroyed ? 'disabled' : ''}>SWAP</button>
+                        <button class="${captBtnClass}" onclick="toggleCaptain(${ship.id})" ${ship.destroyed ? 'disabled' : ''}>
+                            ${ship.captainDisabled ? 'CAPT: OFF' : 'CAPT: ON'}
+                        </button>
+                        <button class="${destBtnClass}" onclick="toggleDestroyed(${ship.id})">
+                            ${ship.destroyed ? 'RESTORE' : 'DESTROY'}
+                        </button>
+                    </div>
+                `;
+                if(playList) playList.appendChild(li);
+            });
+        }
+
+        document.getElementById("playerName").addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                addPlayer();
+            }
+        });
+    </script>
+</body>
+</html>
