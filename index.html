@@ -208,7 +208,7 @@
         .ship-item.destroyed .primary-name,
         .ship-item.destroyed .secondary-name,
         .ship-item.destroyed .admiral-name,
-        .ship-item.destroyed .faction-icon svg {
+        .ship-item.destroyed .faction-icon {
             text-decoration: line-through;
             opacity: 0.5;
         }
@@ -264,7 +264,7 @@
         .primary-name-container {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
         }
 
         .faction-icon {
@@ -709,15 +709,13 @@
             select.style.color = '#000'; 
         }
 
-        // --- SVG Faction Icon Generator ---
+        // --- Faction Graphic Generator ---
         function getFactionIcon(faction, color) {
-            const size = 20;
-            if (faction === 'federation') return `<svg width="${size}" height="${size}" viewBox="0 0 24 24"><path fill="${color}" d="M12 2L4 20L12 15L20 20L12 2Z"/></svg>`;
-            if (faction === 'klingon') return `<svg width="${size}" height="${size}" viewBox="0 0 24 24"><path fill="${color}" d="M12 2L2 10L10 12L7 22L12 16L17 22L14 12L22 10Z"/></svg>`; 
-            if (faction === 'romulan') return `<svg width="${size}" height="${size}" viewBox="0 0 24 24"><path fill="${color}" d="M12 4C8 4 2 10 2 10L6 14L12 8L18 14L22 10C22 10 16 4 12 4Z"/></svg>`;
-            if (faction === 'borg') return `<svg width="${size}" height="${size}" viewBox="0 0 24 24"><path fill="${color}" d="M4 4H20V20H4V4ZM8 8V16H16V8H8Z"/></svg>`;
-            if (faction === 'dominion') return `<svg width="${size}" height="${size}" viewBox="0 0 24 24"><path fill="${color}" d="M12 2L3 22H10L12 17L14 22H21L12 2Z"/></svg>`;
-            return `<svg width="${size}" height="${size}" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="${color}"/></svg>`; // Independent
+            if (faction === 'federation') {
+                return `<svg width="20" height="20" viewBox="0 0 24 24"><path fill="${color}" d="M12 2L4 20L12 15L20 20L12 2Z"/></svg>`;
+            }
+            // Generate clear text badge for all non-Federation ships
+            return `<span style="font-size: 0.8rem; font-weight: bold; border: 1px solid ${color}; color: ${color}; padding: 2px 6px; border-radius: 4px; text-transform: uppercase;">${faction}</span>`;
         }
 
         function addPlayer() {
@@ -932,6 +930,8 @@
         function passInitiative() {
             if (players.length > 0) {
                 initiativeIndex = (initiativeIndex + 1) % players.length;
+                currentRound++;
+                document.getElementById('round-display').innerText = currentRound;
                 renderShipLists();
                 saveState();
             }
