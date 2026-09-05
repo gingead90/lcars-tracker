@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- Mobile App Meta Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#000000">
@@ -34,6 +35,7 @@
             padding: 0;
             display: flex;
             height: 100vh;
+            height: 100dvh; /* Mobile height fix */
             width: 100vw;
             overflow: hidden; 
         }
@@ -45,7 +47,9 @@
             flex-direction: column;
             padding-right: 10px;
             height: 100vh;
+            height: 100dvh;
             overflow-y: auto;
+            padding-bottom: 50px;
         }
 
         .lcars-elbow-top {
@@ -93,6 +97,7 @@
             display: flex;
             flex-direction: column;
             height: 100vh;
+            height: 100dvh;
             overflow: hidden;
         }
 
@@ -178,6 +183,8 @@
             cursor: pointer;
             text-transform: uppercase;
         }
+
+        button.add-btn.tan { background-color: var(--lcars-tan); }
 
         /* Tracker List */
         .ship-list {
@@ -429,19 +436,50 @@
             text-align: right;
             border-right: 4px solid var(--lcars-lavender);
         }
+
+        /* Mobile Portrait Tweaks */
+        @media (max-width: 600px) {
+            .lcars-sidebar {
+                width: 105px;
+            }
+            .lcars-elbow-top {
+                font-size: 0.85rem;
+                padding: 8px 5px;
+                height: 50px;
+            }
+            .lcars-menu-btn {
+                font-size: 0.75rem;
+                padding: 10px 6px;
+            }
+            .round-counter-widget {
+                padding: 8px 5px;
+            }
+            #round-display {
+                font-size: 1.8rem !important;
+            }
+            .lcars-header {
+                font-size: 1rem;
+            }
+        }
     </style>
 </head>
 <body onload="initApp()">
 
+    <!-- Hidden CSV File Input -->
+    <input type="file" id="csvFileInput" accept=".csv" style="display: none;" onchange="handleFileUpload(event)">
+
+    <!-- LCARS Left Sidebar -->
     <div class="lcars-sidebar">
         <div class="lcars-elbow-top" id="stardate-display">00000.0</div>
         
+        <!-- Screen 1: Player Setup Controls -->
         <div id="sidebar-player-setup">
-            <button class="lcars-menu-btn green" onclick="switchScreen('ship')">Next Phase<br>(Add Ships)</button>
+            <button class="lcars-menu-btn green" onclick="switchScreen('ship')">Next Phase<br>(Fleet Setup)</button>
             <div style="height: 30px;"></div>
             <button class="lcars-menu-btn red" onclick="clearAll()">Clear All</button>
         </div>
 
+        <!-- Screen 2: Ship Setup Controls -->
         <div id="sidebar-ship-setup" class="hidden">
             <button class="lcars-menu-btn green" onclick="triggerEngage()">Engage<br>(Start Play)</button>
             <div style="height: 15px;"></div>
@@ -450,8 +488,10 @@
             <button class="lcars-menu-btn red" onclick="clearAll()">Clear All</button>
         </div>
 
+        <!-- Screen 3: Play Controls -->
         <div id="sidebar-play" class="hidden">
             
+            <!-- Round Counter -->
             <div class="round-counter-widget">
                 <div style="color: var(--lcars-blue); font-size: 0.9rem;">ROUND</div>
                 <div id="round-display" style="font-size: 2.2rem; font-weight: bold; color: var(--lcars-pale-yellow); margin: 5px 0;">1</div>
@@ -472,12 +512,23 @@
         </div>
     </div>
 
+    <!-- Main Content Area -->
     <div class="lcars-main">
         <div class="lcars-header" id="main-header">1. PLAYER ROSTER</div>
         
+        <!-- SCREEN 1: PLAYER SETUP -->
         <div id="screen-player-setup" class="content">
+            <!-- CSV Bulk Import Block -->
+            <div class="setup-panel" style="border-left-color: var(--lcars-tan);">
+                <div class="status-text" style="color: var(--lcars-tan);">BULK UPLINK (GOOGLE SHEETS / EXCEL CSV)</div>
+                <div class="input-group">
+                    <button class="add-btn tan" onclick="triggerFileInput()">Import CSV File</button>
+                    <button class="action-btn" onclick="downloadCSVTemplate()">Download Template</button>
+                </div>
+            </div>
+
             <div class="setup-panel">
-                <div class="status-text">ADD COMMANDERS TO COMBAT</div>
+                <div class="status-text">MANUAL PLAYER ENTRY</div>
                 <div class="input-group">
                     <input type="text" id="playerName" placeholder="Player Name" list="presetPlayers">
                     <datalist id="presetPlayers">
@@ -501,9 +552,19 @@
             <ul class="ship-list" id="playerList"></ul>
         </div>
 
+        <!-- SCREEN 2: SHIP SETUP -->
         <div id="screen-ship-setup" class="content hidden">
+            <!-- CSV Bulk Import Block -->
+            <div class="setup-panel" style="border-left-color: var(--lcars-tan);">
+                <div class="status-text" style="color: var(--lcars-tan);">BULK UPLINK (GOOGLE SHEETS / EXCEL CSV)</div>
+                <div class="input-group">
+                    <button class="add-btn tan" onclick="triggerFileInput()">Import CSV File</button>
+                    <button class="action-btn" onclick="downloadCSVTemplate()">Download Template</button>
+                </div>
+            </div>
+
             <div class="setup-panel">
-                <div class="status-text">FLEET DEPLOYMENT</div>
+                <div class="status-text">MANUAL SHIP DEPLOYMENT</div>
                 
                 <div class="input-group">
                     <select id="shipPlayerSelect">
@@ -553,6 +614,7 @@
             <ul class="ship-list" id="setupList"></ul>
         </div>
 
+        <!-- SCREEN 3: PLAY SCREEN -->
         <div id="screen-play" class="content hidden">
             <div class="status-text" id="current-phase">CURRENT PHASE: MOVEMENT (LOW TO HIGH)</div>
             <ul class="ship-list" id="playList"></ul>
@@ -560,19 +622,22 @@
 
     </div>
 
+    <!-- INITIATIVE MODAL -->
     <div id="initiative-modal" class="modal-overlay hidden">
         <div class="modal-content">
             <div class="status-text" style="text-align: center; margin-bottom: 0;">SET INITIATIVE ORDER</div>
             <div class="status-text" style="text-align: center; margin-bottom: 10px; font-size: 0.9rem; color: #999;">Player #1 has the Initiative.</div>
             
             <div id="modal-player-list" style="display: flex; flex-direction: column; gap: 8px;">
-                </div>
+                <!-- Buttons injected via JS -->
+            </div>
             
             <button class="lcars-menu-btn green" style="border-radius: 10px; text-align: center; margin-top: 15px; font-size: 1.2rem; padding: 15px;" onclick="startGameWithInitiative()">ENGAGE (LOCK ORDER)</button>
             <button class="lcars-menu-btn red" style="border-radius: 10px; text-align: center; margin-top: 5px;" onclick="closeModal('initiative-modal')">Cancel</button>
         </div>
     </div>
 
+    <!-- SWAP CAPTAIN MODAL -->
     <div id="swap-captain-modal" class="modal-overlay hidden">
         <div class="modal-content">
             <div class="status-text" style="text-align: center; margin-bottom: 10px;">REASSIGN COMMANDER</div>
@@ -620,6 +685,8 @@
         let currentPhase = 'move'; 
         let currentScreen = 'player';
         let wakeLock = null;
+
+        const availableColors = ["#99CCFF", "#CC6666", "#FFFF99", "#99CC99", "#FF9900", "#CC99CC"];
 
         // --- CORE INITIALIZATION & AUTOSAVE ---
         function initApp() {
@@ -714,22 +781,28 @@
             if (faction === 'federation') {
                 return `<svg width="20" height="20" viewBox="0 0 24 24"><path fill="${color}" d="M12 2L4 20L12 15L20 20L12 2Z"/></svg>`;
             }
-            // Generate clear text badge for all non-Federation ships
             return `<span style="font-size: 0.8rem; font-weight: bold; border: 1px solid ${color}; color: ${color}; padding: 2px 6px; border-radius: 4px; text-transform: uppercase;">${faction}</span>`;
         }
 
-        function addPlayer() {
-            const nameInput = document.getElementById('playerName').value.trim();
-            const colorInput = document.getElementById('playerColor').value;
+        function addPlayer(playerNameStr = null, colorStr = null) {
+            const nameInput = (playerNameStr || document.getElementById('playerName').value).trim();
+            const colorInput = colorStr || document.getElementById('playerColor').value;
             
-            if (!nameInput) { alert("Please enter a Player Name."); return; }
-            if (players.find(p => p.name.toLowerCase() === nameInput.toLowerCase())) { alert("Player already added."); return; }
+            if (!nameInput) { if (!playerNameStr) alert("Please enter a Player Name."); return null; }
+            
+            let existing = players.find(p => p.name.toLowerCase() === nameInput.toLowerCase());
+            if (existing) return existing;
 
-            players.push({ name: nameInput, color: colorInput });
-            document.getElementById('playerName').value = "";
-            document.getElementById('playerName').focus();
+            const newPlayer = { name: nameInput, color: colorInput };
+            players.push(newPlayer);
+            
+            if (!playerNameStr) {
+                document.getElementById('playerName').value = "";
+                document.getElementById('playerName').focus();
+            }
             renderPlayerList();
             saveState();
+            return newPlayer;
         }
 
         function deletePlayer(index) {
@@ -777,7 +850,7 @@
             const playerObj = players.find(p => p.name === playerSelect);
 
             ships.push({ 
-                id: Date.now(), 
+                id: Date.now() + Math.floor(Math.random() * 1000), 
                 playerName: playerObj.name,
                 color: playerObj.color,
                 faction: factionSelect,
@@ -801,6 +874,109 @@
             document.getElementById('shipName').focus();
             
             renderShipLists();
+            saveState();
+        }
+
+        // --- CSV BULK UPLINK (IMPORT / EXPORT) ---
+        function triggerFileInput() {
+            document.getElementById('csvFileInput').click();
+        }
+
+        function downloadCSVTemplate() {
+            const templateText = "Player,Faction,Ship Name,Captain Name,Captain Skill,Admiral Name,Admiral Mod,Admiral Base Skill\n" +
+                                 "Chris,federation,USS Enterprise,James T. Kirk,9,Starfleet Command,0,1\n" +
+                                 "Adam,klingon,IKS Negh'Var,Martok,8,,0,1";
+            
+            const blob = new Blob([templateText], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('href', url);
+            a.setAttribute('download', 'LCARS_Fleet_Template.csv');
+            a.click();
+        }
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                parseAndImportCSV(text);
+                event.target.value = ''; 
+            };
+            reader.readAsText(file);
+        }
+
+        function parseAndImportCSV(csvText) {
+            const lines = csvText.split(/\r?\n/).filter(line => line.trim() !== '');
+            if (lines.length < 2) {
+                alert("CSV file empty or missing data rows.");
+                return;
+            }
+
+            const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+            
+            const findCol = (possibleNames) => headers.findIndex(h => possibleNames.includes(h));
+
+            const pIdx = findCol(['player', 'commander', 'player name']);
+            const fIdx = findCol(['faction', 'allegiance']);
+            const sIdx = findCol(['ship', 'ship name']);
+            const cIdx = findCol(['captain', 'captain name']);
+            const csIdx = findCol(['captain skill', 'skill', 'base skill', 'capt skill']);
+            const aIdx = findCol(['admiral', 'admiral name']);
+            const amIdx = findCol(['admiral mod', 'mod']);
+            const absIdx = findCol(['admiral base skill', 'admiral skill']);
+
+            let importedCount = 0;
+
+            for (let i = 1; i < lines.length; i++) {
+                const row = lines[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || lines[i].split(',');
+                const clean = (val) => val ? val.replace(/^"|"$/g, '').trim() : '';
+
+                const pName = pIdx !== -1 ? clean(row[pIdx]) : 'Player 1';
+                if (!pName) continue;
+
+                let playerObj = players.find(p => p.name.toLowerCase() === pName.toLowerCase());
+                if (!playerObj) {
+                    const nextColor = availableColors[players.length % availableColors.length];
+                    playerObj = addPlayer(pName, nextColor);
+                }
+
+                let faction = fIdx !== -1 ? clean(row[fIdx]).toLowerCase() : 'independent';
+                if (!['federation', 'klingon', 'romulan', 'borg', 'dominion', 'independent'].includes(faction)) {
+                    faction = 'independent';
+                }
+
+                const shipName = sIdx !== -1 ? clean(row[sIdx]) : 'Unknown Ship';
+                const captainName = cIdx !== -1 ? clean(row[cIdx]) : 'Unknown Captain';
+                const baseSkill = csIdx !== -1 ? parseInt(clean(row[csIdx])) || 1 : 1;
+                const admiralName = aIdx !== -1 ? clean(row[aIdx]) : '';
+                const admiralMod = amIdx !== -1 ? parseInt(clean(row[amIdx])) || 0 : 0;
+                const admiralBaseSkill = absIdx !== -1 ? parseInt(clean(row[absIdx])) || 1 : 1;
+
+                ships.push({
+                    id: Date.now() + i + Math.floor(Math.random() * 1000),
+                    playerName: playerObj.name,
+                    color: playerObj.color,
+                    faction: faction,
+                    shipName: shipName,
+                    captainName: captainName,
+                    baseSkill: baseSkill,
+                    admiralName: admiralName,
+                    admiralMod: admiralMod,
+                    admiralBaseSkill: admiralBaseSkill,
+                    manualMod: 0,
+                    captainDisabled: false,
+                    destroyed: false
+                });
+
+                importedCount++;
+            }
+
+            renderPlayerList();
+            switchScreen('ship'); 
+            alert(`Uplink successful: ${importedCount} ships imported into Fleet Deployment.`);
             saveState();
         }
 
@@ -932,8 +1108,7 @@
                 initiativeIndex = (initiativeIndex + 1) % players.length;
                 currentRound++;
                 document.getElementById('round-display').innerText = currentRound;
-                renderShipLists();
-                saveState();
+                setPhase('move');
             }
         }
 
@@ -1000,7 +1175,6 @@
                 sidebarPlayer.classList.remove('hidden');
                 header.innerText = "1. PLAYER ROSTER";
             } else if (screen === 'ship') {
-                if (players.length === 0 && !isLoad) { alert("Please add at least one player first."); switchScreen('player'); return; }
                 const select = document.getElementById('shipPlayerSelect');
                 select.innerHTML = '<option value="" disabled selected>Select Player</option>';
                 players.forEach(p => { select.innerHTML += `<option value="${p.name}">${p.name}</option>`; });
